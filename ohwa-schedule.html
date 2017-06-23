@@ -1,0 +1,105 @@
+<!--
+ohwa-schedule
+An element that generates timetable information based on 5 minute slots
+You supply: eventDuration, businessHours, bookedEvents to determine a possible start time
+@tfarirayi1
+-->
+<link rel="import" href="bower_components/polymer/polymer.html">
+
+<dom-module id="ohwa-schedule">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+
+    <template is="dom-repeat" items="{{_slotList}}">
+      <h5>{{item}}</h5>
+    </template>
+  </template>
+
+  <script>
+    Polymer({
+
+      is: 'ohwa-schedule',
+
+      properties: {
+
+        businessOpen: {
+          type: String,
+          value: '0930',
+        },
+
+        businessClose: {
+          type: String,
+          value: '1730'
+        },
+
+        eventMinutes: {
+          type: Number,
+          value: 45
+        },
+
+        eventSlots: {
+          type: Number,
+          computed: '_computeEventSlots(eventMinutes, _slotDuration)'
+        },
+
+        _slotDuration: {
+          type: Number,
+          value: 5
+        },
+
+        _totalSlots: {
+          type: Number,
+          computed: '_computeTotalSlots(businessClose, businessOpen, _slotDuration)'
+        },
+
+        _slotList: {
+          type: Number,
+          computed: '_computeSlotList(_totalSlots)'
+        }
+
+      },
+
+      _computeSlotList: function() {
+        var slotId = 0;
+        var slotArray = [0];
+
+        for (i=0; i < this._totalSlots; i++) {
+          slotId += 5;
+          slotArray.push(slotId);
+        }
+        // Ensure ascending order
+        return slotArray.sort(function(a,b) {return a-b });
+      },
+
+      _computeTotalSlots: function(closeTime, openTime, slotDuration) {
+        var timeA = moment(openTime, 'hhmm');
+        var timeB = moment(closeTime, 'hhmm');
+        // Number of minutes in the day divided by 5 i.e slot duration
+        var timeBetween = timeB.diff(timeA, 'minutes');
+        var _slots = timeBetween/5;
+
+        return _slots;
+      },
+
+      _computeEventSlots: function(eventDuration, slotDuration) {
+        return eventDuration/slotDuration;
+      },
+
+      _slotToTime: function(slotId) {
+        var openTime = moment(this.businessOpen, 'hhmm'); // Convert time string to moment
+        var resultTime = moment(openTime, 'HH:mm').add(slotId, 'minutes').format('HH:mm'); // Add the supplied number of minutes from origin
+
+        return resultTime;
+      },
+
+      ready: function() {
+        console.log(this.properties);
+      }
+
+    });
+  </script>
+</dom-module>
