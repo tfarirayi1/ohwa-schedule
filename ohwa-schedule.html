@@ -36,12 +36,21 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
           value: '1730'
         },
 
-        eventMinutes: {
+        _currentDate: {
+          type: String
+        },
+
+        _currentEvents: {
+          type: Array,
+          computed: '_computeCurrentEvents(_currentDate)'
+        },
+
+        requiredEventMinutes: {
           type: Number,
           value: 45
         },
 
-        eventSlots: {
+        requiredEventSlots: {
           type: Number,
           computed: '_computeEventSlots(eventMinutes, _slotDuration)'
         },
@@ -85,6 +94,11 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
         return _slots;
       },
 
+      _computeCurrentEvents: function(selectedDate) {
+        // Fetch events based on selected date
+
+      },
+
       _computeEventSlots: function(eventDuration, slotDuration) {
         return eventDuration/slotDuration;
       },
@@ -96,9 +110,55 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
         return resultTime;
       },
 
+      _removeEvents: function(eventList) {
+        // Interpret the event start time and end time as slots
+        // Splice the index of slots
+        // Convert start time to slotId
+        // Divide duration by 5 to get numSlots
+        // splice on index of slotId and remove numSlots 
+        // Events stored as events: { 27-JUN-17: [{start: '1030', duration: 60}], 28-JUN-17: [] }
+        console.log(this._slotList);
+        for (i = 0; i < eventList.length; i++) {
+          var slotId = this._timeToSlot(eventList[i].start);
+          var numSlots = this._durationToSlots(eventList[i].duration);
+          
+          var position = this._slotList.indexOf(slotId);
+          // Remove events such that a new event can end at the start or start at the end, of the removed event
+          this.splice('_slotList', position + 1, numSlots - 1); 
+        }
+        console.log(this._slotList);
+        console.log(this._slotToTime(330));
+        console.log(this._slotToTime(375));
+      },
+
+      _timeToSlot: function(time) {
+        var eventStart = moment(time, 'hhmm');
+        var openTime = moment(this.businessOpen, 'hhmm');
+        // timeDiff equates to SlotID since SlotID equals number of minutes from start time
+        return eventStart.diff(openTime, 'minutes');
+      },
+
+      _durationToSlots: function(minutes) {
+        return (minutes/5);
+      },
+
       ready: function() {
-        console.log(this.properties);
+        this._removeEvents([
+          {
+            start: '1000',
+            duration: 50
+          },
+          {
+            start: '1500',
+            duration: 45
+          },
+          {
+            start: '1230',
+            duration: 60
+          }
+        ]);
       }
+
 
     });
   </script>
