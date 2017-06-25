@@ -50,9 +50,9 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
           value: 45
         },
 
-        requiredEventSlots: {
+        requiredSlots: {
           type: Number,
-          computed: '_computeEventSlots(eventMinutes, _slotDuration)'
+          computed: '_computeRequiredSlots(requiredEventMinutes, _slotDuration)'
         },
 
         _slotDuration: {
@@ -90,8 +90,9 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
         // Number of minutes in the day divided by 5 i.e slot duration
         var timeBetween = timeB.diff(timeA, 'minutes');
         var _slots = timeBetween/5;
+        var _overTime = 24; // Overtime slots
 
-        return _slots;
+        return _slots + _overTime;
       },
 
       _computeCurrentEvents: function(selectedDate) {
@@ -99,15 +100,47 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
 
       },
 
-      _computeEventSlots: function(eventDuration, slotDuration) {
+      _computeRequiredSlots: function(eventDuration, slotDuration) {
         return eventDuration/slotDuration;
       },
 
       _slotToTime: function(slotId) {
-        var openTime = moment(this.businessOpen, 'hhmm'); // Convert time string to moment
+        var openTime = moment(this.businessOpen, 'HH:mm'); // Convert time string to moment
         var resultTime = moment(openTime, 'HH:mm').add(slotId, 'minutes').format('HH:mm'); // Add the supplied number of minutes from origin
 
         return resultTime;
+      },
+
+      _findFreeSlots: function() {
+        // code 
+        var main = this;
+         for (i=0; i < main._slotList.length; i++) {
+          var slotLength = main.requiredSlots;
+          var index1 = i;
+          var index2 = i + slotLength;
+          // time in minutes
+          var a = main._slotList[index1];
+          var b = main._slotList[index2];
+
+          var _duration = main.requiredEventMinutes;
+
+          var adjacent = function() {
+            if ((b-a) != _duration) return false;
+            return true;
+            // console.log('Duration: ' + _duration + ' ' + main._slotToTime(a) + ' - ' + main._slotToTime(b));
+          }
+          var possibleStart = main._slotToTime(a);
+          var beforeClose = moment(possibleStart, 'HH:mm').isSameOrBefore(moment(main.businessClose, 'HH:mm'));
+
+          if(main._slotList.length > index2) {
+            if (adjacent() && beforeClose) {
+              var possibleStart = main._slotToTime(a);
+              var finish = moment(possibleStart,'HH:mm').add(_duration, 'minutes').format('HH:mm');
+              console.log(possibleStart + ' - ' + finish);
+            }
+
+          } 
+        }
       },
 
       _removeEvents: function(eventList) {
@@ -117,7 +150,6 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
         // Divide duration by 5 to get numSlots
         // splice on index of slotId and remove numSlots 
         // Events stored as events: { 27-JUN-17: [{start: '1030', duration: 60}], 28-JUN-17: [] }
-        console.log(this._slotList);
         for (i = 0; i < eventList.length; i++) {
           var slotId = this._timeToSlot(eventList[i].start);
           var numSlots = this._durationToSlots(eventList[i].duration);
@@ -125,10 +157,9 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
           var position = this._slotList.indexOf(slotId);
           // Remove events such that a new event can end at the start or start at the end, of the removed event
           this.splice('_slotList', position + 1, numSlots - 1); 
+          console.log(this._slotToTime(slotId) + ' - ' + eventList[i].duration);
         }
-        console.log(this._slotList);
-        console.log(this._slotToTime(330));
-        console.log(this._slotToTime(375));
+
       },
 
       _timeToSlot: function(time) {
@@ -149,14 +180,17 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
             duration: 50
           },
           {
-            start: '1500',
+            start: '1135',
             duration: 45
           },
           {
-            start: '1230',
+            start: '1715',
             duration: 60
           }
         ]);
+
+        this._findFreeSlots();
+        console.log(this._slotToTime(50));
       }
 
 
