@@ -10,7 +10,7 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
 <link rel="import" href="bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="bower_components/iron-flex-layout/iron-flex-layout.html">
 <link rel="import" href="bower_components/vaadin-icons/vaadin-icons.html">
-<link href="https://fonts.googleapis.com/css?family=Cutive+Mono|Droid+Sans+Mono" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Cutive+Mono|Arimo|Moul|Roboto+Slab|Droid+Sans+Mono" rel="stylesheet">
 <dom-module id="ohwa-schedule">
   <template>
     <style>
@@ -26,23 +26,20 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
       }
 
       .slider {
-        width: 56px;
-        height: 24px;
-        border-radius: 5px;
+        width: 40px;
+        height: 34px;
+        box-sizing: border-box;
         /*border: 1px solid rgba(255,138,101 ,1);*/
         /*text-shadow: 1px 1px silver;*/
         /*color: rgba(255,138,101 ,1);*/
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 4px;
+
+        /*padding: 4px;*/
+        line-height: 24px;
         text-align: center;
-        font-family: 'Droid Sans Mono', monospace;
+        font-family: 'Moul', cursive;
         margin: 2px;
-        font-weight: 500;
+        /*font-weight: 500;*/
         outline: none;
-        background-color: rgba(255,138,101 ,1);
-        @apply(--shadow-elevation-2dp);
         position: relative;
       }
 
@@ -66,6 +63,7 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
       .hour {
         margin-left: 3px;
         margin-right: 1px;
+        letter-spacing: 1px;
       }
       
       .minute {
@@ -74,18 +72,27 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
       }
 
       .digit {
+        border: 3px solid rgba(255,138,101 ,1);
         pointer-events: none;
+        box-sizing: border-box;
         background-color: rgba(38,50,56, 1);
+        display: flex;
+        align-items: center;
+        flex-direction: row;
         color: rgba(245,245,245 ,1);
         width: 100%;  
         font-size: 20px;
         /*line-height: 140%;*/
+        letter-spacing: 1px;
         height: 100%;      
         @apply(--layout-horizontal);
-        @apply(--layout-end-justified);
+        @apply(--layout-center-justified);
         @apply(--layout-center);
         padding: 1px;
-        padding-right: 8px;
+        @apply(--shadow-elevation-2dp);
+        border-radius: 5px;
+        
+        /*padding-right: 8px;*/
       }
 
       .adjust {
@@ -100,28 +107,33 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
         margin-left: 3px;
         font-size: 18px;
         font-weight: bold;
+        pointer-events: none;
+        color: rgba(38,50,56, 1);
       }
 
       .indicator {
         position: absolute;
         top: -22px;
-        left: 5px;
+        left: 0;
+        right: 0;
       }
 
       iron-icon.adjusting {
         color: red;
+        color: rgba(255,138,101 ,1);
         color: rgba(38,50,56 ,1);
-        --iron-icon-width: 28px;
-        --iron-icon-height: 28px;
+        --iron-icon-width: 30px;
+        --iron-icon-height: 30px;
       }
 
       iron-icon.control {
-        @apply(--shadow-elevation-2dp);
+        /*@apply(--shadow-elevation-2dp);*/
         color: rgba(38,50,56 ,1);
-        background-color: rgba(255,138,101 ,1);
-        border-radius: 50%;
+        /*background-color: rgba(255,138,101 ,1);*/
+        /*border-radius: 50%;*/
+        border: none;
         margin: 2px;
-        padding: 1px;
+        /*padding: 1px;*/
         /*--iron-icon-height: 18px;*/
         /*--iron-icon-width: 18px;*/
       }
@@ -147,7 +159,7 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
       <iron-icon class="control" tabindex="0" on-tap="_plus" icon="icons:add-circle"></iron-icon>
       <iron-icon class="control" tabindex="0" on-tap="_minus" icon="icons:remove-circle"></iron-icon>
     </div>
-    <div class="date">
+    <div class="date noselect">
       Wed,<br>14 June 2017
     </div>
 
@@ -166,13 +178,11 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
         },
 
         selectedHour: {
-          type: Number,
-          value: 10
+          type: Number
         },
         
         selectedMinute: {
-          type: Number,
-          value: 40
+          type: Number
         },
         
         businessOpen: {
@@ -221,7 +231,8 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
 
         _selectableTimes: {
           type: Array,
-          computed: '_findSelectableTimes(_slotList, _bookedEvents)'
+          computed: '_findSelectableTimes(_slotList, _bookedEvents)',
+          observer: '_initializeTimes'
         },
 
         _toggleMinute: {
@@ -229,9 +240,13 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
           value: false
         },
 
+        _availableHours: {
+          type: Array
+        },
+
         _toggleHour: {
           type: Boolean,
-          value: false
+          value: true
         },
         
         _bookedEvents: {
@@ -254,49 +269,60 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
 
       },
 
-      _computeSelectableTimes: function(slots) {
-        var timeList = [];
-        var hourList = [];
+      _nextHour: function() {
+          var hours = this._availableHours;
+          var next = hours.indexOf(this.selectedHour) + 1;
+         
+          this.selectedHour = hours.indexOf(hours[next]) == -1 ?  hours[0] : hours[next];
+          this.selectedMinute = this._getAvailableMinutes()[0];
+      },
 
-        for (i = 0; i < slots.length; i++) {
-          timeList.push(this._slotToTime(slots[i]));
-          var timeParts = timeList[i].split(':');
-          var hours = timeParts[0];
-          var minutes = timeParts[1];
-          
-        }
-        console.log(hourList);
-        return {
-            9: {
-              minutes: ['05', '10', '15', '20']
-            },
-            10: ['20', '25', '30'],
-            11: []
-          }
+      _nextMinute: function() {
+          var minutes = this._getAvailableMinutes();
+          var next = minutes.indexOf(this.selectedMinute) + 1;
+
+          if (minutes[next] == undefined) return this._nextHour();
+          this.selectedMinute = minutes.indexOf(minutes[next]) == -1 ? minutes[0] : minutes[next];
+      },
+
+      _previousHour: function() {
+          var hours = this._availableHours;
+          var next = hours.indexOf(this.selectedHour) - 1;
+         
+          this.selectedHour = hours.indexOf(hours[next]) == -1 ?  hours[0] : hours[next];
+          this.selectedMinute = this._getAvailableMinutes()[0];
+      },
+
+      _previousMinute: function() {
+          var minutes = this._getAvailableMinutes();
+          var next = minutes.indexOf(this.selectedMinute) - 1;
+
+          if (minutes[next] == undefined) return this._previousHour();
+          this.selectedMinute = minutes.indexOf(minutes[next]) == -1 ? minutes[0] : minutes[next];
       },
 
       _plus: function(e) {
-        // this._toggleHour ? this.selectedDate : ;
-        // this.selectedHour
         if (this._toggleHour) {
-          // this.
-        }
-
-        else if (this._toggleMinute) {
+          this._nextHour();
 
         }
 
-        else {
-          // console.log('Select a part of time to adjust');
+        if (this._toggleMinute) {
+          this._nextMinute();
+
         }
       },
 
-      _changeMinute: function(newValue, oldValue) {
-        // console.log(newValue)
-      },
+      _minus: function(e) {
+        if (this._toggleHour) {
+          this._previousHour();
 
-      _dragging: function(e) {
-        // console.log(e);
+        }
+
+        if (this._toggleMinute) {
+          this._previousMinute();
+
+        }
       },
 
       _toggleSelect: function(e) {
@@ -344,11 +370,6 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
         return _slots + _overTime;
       },
 
-      _computeCurrentEvents: function(selectedDate) {
-        // Fetch events based on selected date
-
-      },
-
       _computeRequiredSlots: function(eventDuration, slotDuration) {
         return eventDuration/slotDuration;
       },
@@ -362,41 +383,43 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
 
       _findSelectableTimes: function(slotList, bookedList) {
         this._removeEvents(bookedList);
-        // code 
+
         var main = this;
         var _slots = [];
-
+        var length = slotList.length;
         for (i = 0; i < slotList.length; i++) {
-
+          // Indexes to check
           var index1 = i;
           var index2 = i + main.requiredSlots;
-
+          // The slots being checked by loop
           var a = slotList[index1];
           var b = slotList[index2];
 
+          // Duration of event to be booked
           var _duration = main.requiredEventMinutes;
 
+          // Determine if slots successive
           var adjacent = function() {
             if ((b-a) != _duration) return false;
             return true;
-            // console.log('Duration: ' + _duration + ' ' + main._slotToTime(a) + ' - ' + main._slotToTime(b));
           }
 
           var possibleStart = main._slotToTime(a);
+          // Slots should start before closing time
           var beforeClose = moment(possibleStart, 'HH:mm').isSameOrBefore(moment(main.businessClose, 'hhmm'));
 
-          if(slotList.length > index2) {
-            if (adjacent() && beforeClose) {
+          if (slotList.length > index2) { // Valid events
+            if (adjacent() && beforeClose) { // Successive slots to fit reqiured event time, Before closing time
+
               var possibleStart = main._slotToTime(a);
               _slots.push(possibleStart);
-              // var finish = moment(possibleStart,'HH:mm').add(_duration, 'minutes').format('HH:mm');
-              // console.log(possibleStart + ' - ' + finish);
-            }
+              console.log(length);
 
+            }
           } 
         }
 
-        ;
+        console.log(slotList);
         return this._processSelectableTimes(_slots);
       },
 
@@ -424,23 +447,34 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
           _minutes[_hh].push(_mm);
         }
 
+        // Provide global helper array
+        this._availableHours = _hours;  
         return _minutes;
 
       },
 
+      _initializeTimes: function(newValue) {
+        // Set hour
+        this.selectedHour = this._availableHours[0];
+        // Get corresponding minutes
+        var minutes = newValue[this.selectedHour];
+        // Set minute
+        this.selectedMinute = minutes[0];
+        
+      },
+
+      _getAvailableMinutes: function() {
+        // Return a list of minutes available for selected hour
+        var minutes = this._selectableTimes[this.selectedHour];
+        return minutes;
+      }, 
+
       _removeEvents: function(eventList) {
-        // Interpret the event start time and end time as slots
-        // Splice the index of slots
-        // Convert start time to slotId
-        // Divide duration by 5 to get numSlots
-        // splice on index of slotId and remove numSlots 
-        // Events stored as events: { 27-JUN-17: [{start: '1030', duration: 60}], 28-JUN-17: [] }
-        for (i = 0; i < eventList.length; i++) {
+        for (i in eventList) {
           var slotId = this._timeToSlot(eventList[i].start);
           var numSlots = this._durationToSlots(eventList[i].duration);
-          
           var position = this._slotList.indexOf(slotId);
-          // Remove events such that a new event can end at the start or start at the end, of the removed event
+
           this.splice('_slotList', position + 1, numSlots - 1); 
         }
 
@@ -449,7 +483,7 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
       _timeToSlot: function(time) {
         var eventStart = moment(time, 'hhmm');
         var openTime = moment(this.businessOpen, 'hhmm');
-        // timeDiff equates to SlotID since SlotID equals number of minutes from start time
+
         return eventStart.diff(openTime, 'minutes');
       },
 
@@ -458,11 +492,7 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
       },
 
       ready: function() {
-
-
-        for (i in this._selectableTimes) {
-          console.log(this._selectableTimes[i]);
-        }
+        console.log(this._selectableTimes);
       }
 
 
