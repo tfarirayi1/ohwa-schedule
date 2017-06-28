@@ -69,6 +69,11 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
       .minute {
         margin-left: 2px;
         margin-right: 3px;
+        letter-spacing: 1px;
+      }
+
+      .digit:focus {
+        @apply(--shadow-elevation-8dp);
       }
 
       .digit {
@@ -111,9 +116,16 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
         color: rgba(38,50,56, 1);
       }
 
-      .indicator {
+      .up-indicator {
         position: absolute;
         top: -22px;
+        left: 0;
+        right: 0;
+      }
+      
+      .down-indicator {
+        position: absolute;
+        bottom: -23px;
         left: 0;
         right: 0;
       }
@@ -137,23 +149,44 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
         /*--iron-icon-height: 18px;*/
         /*--iron-icon-width: 18px;*/
       }
+
+      .up-indicator[maximum] {
+        display: none;
+      }
     </style>
     <!-- Local dom -->
-    <div adjusting="true" class="slider noselect hour" id="hour" tabindex="0" on-keypress="_checkKey" on-track="_dragging" on-tap="_toggleSelect">
+    <div adjusting="true" class="slider noselect hour" id="hour" tabindex="0" on-track="_dragging" on-tap="_toggleSelect">
       <div class="digit">{{selectedHour}}</div>
       <template is="dom-if" if="[[_toggleHour]]">
-        <span class="indicator">
-          <iron-icon class="adjusting" icon="icons:arrow-drop-down"></iron-icon>
-        </span>
+        <template is="dom-if" if="[[_notMaxHour]]">
+          <span class="up-indicator">
+            <iron-icon class="adjusting" icon="icons:arrow-drop-up"></iron-icon>
+          </span>
+        </template>
+
+        <template is="dom-if" if="[[_notMinHour]]">
+          <span class="down-indicator">
+            <iron-icon class="adjusting" icon="icons:arrow-drop-down"></iron-icon>
+          </span>
+        </template>
       </template>
     </div>
-    <div class="slider noselect minute" adjusting="false" id="minute" tabindex="0" on-track="_dragging" on-keydown="_checkKey" on-tap="_toggleSelect">
-      <span class="digit"><span>{{selectedMinute}}</span></span>
+    <div class="slider noselect minute" adjusting="false" id="minute" tabindex="0" on-track="_dragging" on-tap="_toggleSelect">
+      <div class="digit">{{selectedMinute}}</div>
       <template is="dom-if" if="[[_toggleMinute]]">
-        <span class="indicator">
-          <iron-icon class="adjusting" icon="icons:arrow-drop-down"></iron-icon>
-        </span>
+        <template is="dom-if" if="[[_notMaxMinute]]">
+          <span class="up-indicator">
+            <iron-icon class="adjusting" icon="icons:arrow-drop-up"></iron-icon>
+          </span>
+        </template>
+
+        <template is="dom-if" if="[[_notMinMinute]]">
+          <span class="down-indicator">
+            <iron-icon class="adjusting" icon="icons:arrow-drop-down"></iron-icon>
+          </span>
+        </template>
       </template>
+
     </div>
     <div class="adjust">
       <iron-icon class="control" tabindex="0" on-tap="_plus" icon="icons:add-circle"></iron-icon>
@@ -173,16 +206,14 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
 
       properties: {
 
-        adjust: {
-
-        },
-
         selectedHour: {
-          type: Number
+          type: Number,
+          observer: '_checkMaxMinHour'
         },
         
         selectedMinute: {
-          type: Number
+          type: Number,
+          observer: '_checkMaxMinMinute'
         },
         
         businessOpen: {
@@ -248,6 +279,10 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
           type: Boolean,
           value: true
         },
+
+        _maxHour: {
+          type: Boolean
+        },
         
         _bookedEvents: {
           type: Array,
@@ -269,19 +304,72 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
 
       },
 
+      _checkMaxMinHour: function(newValue) {
+          var hours = this._availableHours;
+          var length = hours.length;
+         
+          if (newValue == hours[length - 1]) {
+            this._notMaxHour = false;
+            this._notMinHour = true;
+            return 
+          }
+
+          if (newValue == hours[0]) {
+            this._notMaxHour = true;
+            this._notMinHour = false;
+            return 
+          }
+
+          this._notMinHour = true;
+          this._notMaxHour = true;
+        
+      },  
+
+      _checkMaxMinMinute: function(newValue) {
+        var minutes = this._getAvailableMinutes();
+        var length = minutes.length;
+
+        if (!this._notMinHour && newValue == minutes[0]) {
+          this._notMinMinute = false;
+          this._notMaxMinute = true;
+          
+          return;
+        }
+
+        if (!this._notMaxHour && newValue == minutes[length - 1]) {
+          this._notMaxMinute = false;
+          this._notMinMinute = true;
+          console.log('YE');
+          return;
+        }
+
+        this._notMinMinute = true;
+        this._notMaxMinute = true;
+        
+
+      },
+
       _nextHour: function() {
           var hours = this._availableHours;
           var next = hours.indexOf(this.selectedHour) + 1;
          
-          this.selectedHour = hours.indexOf(hours[next]) == -1 ?  hours[0] : hours[next];
-          this.selectedMinute = this._getAvailableMinutes()[0];
+          var _next = hours.indexOf(this.selectedHour);
+          
+          if (_next != hours.length - 1) {
+            this.selectedHour = hours.indexOf(hours[next]) == -1 ?  hours[0] : hours[next];
+            this.selectedMinute = this._getAvailableMinutes()[0];
+          } 
+
       },
 
       _nextMinute: function() {
           var minutes = this._getAvailableMinutes();
           var next = minutes.indexOf(this.selectedMinute) + 1;
 
-          if (minutes[next] == undefined) return this._nextHour();
+          if (minutes[next] == undefined) {
+            return this._nextHour();
+          }
+
           this.selectedMinute = minutes.indexOf(minutes[next]) == -1 ? minutes[0] : minutes[next];
       },
 
@@ -290,14 +378,18 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
           var next = hours.indexOf(this.selectedHour) - 1;
          
           this.selectedHour = hours.indexOf(hours[next]) == -1 ?  hours[0] : hours[next];
-          this.selectedMinute = this._getAvailableMinutes()[0];
+          var length = this._getAvailableMinutes().length;
+          this.selectedMinute = this._getAvailableMinutes()[length - 1];
       },
 
       _previousMinute: function() {
           var minutes = this._getAvailableMinutes();
           var next = minutes.indexOf(this.selectedMinute) - 1;
 
-          if (minutes[next] == undefined) return this._previousHour();
+          if (minutes[next] == undefined) {
+            return this._previousHour();
+          }
+
           this.selectedMinute = minutes.indexOf(minutes[next]) == -1 ? minutes[0] : minutes[next];
       },
 
@@ -329,21 +421,28 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
         var tapped = e.target.id;
         switch(tapped) {
           case 'minute':
-            // this.toggleAttribute('adjusting', !this._toggleMinute, this.$$('#minute'));
-            this._toggleMinute = !this._toggleMinute;
-            this._toggleHour ? this._toggleHour = !this._toggleHour : null; 
+            this._toggleMinute = true;
+            this._toggleHour ? this._toggleHour = false : null; 
             break;
           case 'hour':
-            // this.toggleAttribute('adjusting', !this._toggleMinute, this.$$('#minute'));
-            this._toggleHour = !this._toggleHour;
-            this._toggleMinute ? this._toggleMinute = !this._toggleMinute : null; 
+            this._toggleHour = true;
+            this._toggleMinute ? this._toggleMinute = false : null; 
             break;
         }
       },
 
       _checkKey: function(e) {
+        console.log(e);
         if (e.charCode == 13) {
           this._toggleSelect(e);
+        }
+
+        if (e.code == 'ArrowUp' ) {
+          this._plus();
+        }
+
+        if (e.code == 'ArrowDown' ) {
+          this._minus();
         }
       },
 
