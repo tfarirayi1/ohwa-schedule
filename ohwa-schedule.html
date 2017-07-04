@@ -1,63 +1,67 @@
 <!--
 ohwa-schedule
+@tfarirayi1
 An element that generates timetable information based on 5 minute slots
 You supply: eventDuration, businessHours, bookedEvents to determine a possible start time
-@tfarirayi1
 -->
+<!-- Polymer dependency -->
 <link rel="import" href="bower_components/polymer/polymer.html">
+<!-- Paper elements -->
 <link rel="import" href="bower_components/paper-styles/shadow.html">
+<link rel="import" href="bower_components/paper-button/paper-button.html">
+<link rel="import" href="bower_components/paper-dialog/paper-dialog.html">
+<!-- Iron elements -->
 <link rel="import" href="bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="bower_components/iron-flex-layout/iron-flex-layout.html">
+<!-- Other elements -->
 <link rel="import" href="bower_components/vaadin-icons/vaadin-icons.html">
-<link href="https://fonts.googleapis.com/css?family=Cutive+Mono|Arimo|Moul|Roboto+Slab|Droid+Sans+Mono" rel="stylesheet">
+<link rel="import" href="bower_components/app-datepicker/app-datepicker-dialog.html">
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css?family=Moul" rel="stylesheet">
+
 <dom-module id="ohwa-schedule">
   <template>
     <style>
       :host {
         display: block;
+      }
+
+      .time-select {
         cursor: default;
         display: inline-flex;
         align-items: center;
         justify-content: space-between;
-        border-radius: 8px;
-        /*background-color: rgba(38,50,56 ,1);*/
-        /*border: 1px solid black;*/
       }
 
       .slider {
-        width: 40px;
-        height: 34px;
+        border-radius: 5px;
         box-sizing: border-box;
-        /*border: 1px solid rgba(255,138,101 ,1);*/
-        /*text-shadow: 1px 1px silver;*/
-        /*color: rgba(255,138,101 ,1);*/
-
-        /*padding: 4px;*/
-        line-height: 24px;
-        text-align: center;
+        background-color: rgba(38,50,56, 1);
+        border: 2px solid rgba(255,138,101 ,0.8);
+        color: rgba(245,245,245 ,1);
         font-family: 'Moul', cursive;
+        font-size: 20px;
+        letter-spacing: 1px;
+        line-height: 24px;
+        min-height: 36px;
+        min-width: 42px;
         margin: 2px;
-        /*font-weight: 500;*/
         outline: none;
         position: relative;
-      }
-
-      .slider[adjusting="true"] {
-        color: rgba(255,138,101 ,1);
-        /*background-color: rgb(59, 70, 75);*/
-      }
-
-      .slider:focus {
-        /*@apply(--shadow-elevation-6dp);*/
+        text-align: center;
+        @apply(--shadow-elevation-2dp);
+        @apply(--layout-horizontal);
+        @apply(--layout-center-justified);
+        @apply(--layout-center);
       }
 
       .noselect {
+        cursor: default;
+        user-select: none; /* Standard syntax */
         -webkit-user-select: none; /* Chrome, Opera, Safari */
         -moz-user-select: none; /* Firefox 2+ */
         -ms-user-select: none; /* IE 10+ */
-        user-select: none; /* Standard syntax */
-        cursor: default;
       }
 
       .hour {
@@ -72,32 +76,8 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
         letter-spacing: 1px;
       }
 
-      .digit:focus {
-        @apply(--shadow-elevation-8dp);
-      }
-
       .digit {
-        border: 3px solid rgba(255,138,101 ,1);
         pointer-events: none;
-        box-sizing: border-box;
-        background-color: rgba(38,50,56, 1);
-        display: flex;
-        align-items: center;
-        flex-direction: row;
-        color: rgba(245,245,245 ,1);
-        width: 100%;  
-        font-size: 20px;
-        /*line-height: 140%;*/
-        letter-spacing: 1px;
-        height: 100%;      
-        @apply(--layout-horizontal);
-        @apply(--layout-center-justified);
-        @apply(--layout-center);
-        padding: 1px;
-        @apply(--shadow-elevation-2dp);
-        border-radius: 5px;
-        
-        /*padding-right: 8px;*/
       }
 
       .adjust {
@@ -105,97 +85,106 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
         flex-direction: column;
         border-radius: 0px;
         margin-left: 1px;
-        
       }
 
       .date {
-        margin-left: 3px;
+        color: rgba(38,50,56, 1);
         font-size: 18px;
         font-weight: bold;
+        margin-left: 3px;
         pointer-events: none;
-        color: rgba(38,50,56, 1);
       }
 
       .up-indicator {
         position: absolute;
-        top: -22px;
+        top: -23.4px;
         left: 0;
         right: 0;
       }
       
       .down-indicator {
         position: absolute;
-        bottom: -23px;
+        bottom: -25px;
         left: 0;
         right: 0;
       }
 
       iron-icon.adjusting {
-        color: red;
-        color: rgba(255,138,101 ,1);
+        z-index: 5;
         color: rgba(38,50,56 ,1);
         --iron-icon-width: 30px;
         --iron-icon-height: 30px;
       }
 
-      iron-icon.control {
-        /*@apply(--shadow-elevation-2dp);*/
-        color: rgba(38,50,56 ,1);
-        /*background-color: rgba(255,138,101 ,1);*/
-        /*border-radius: 50%;*/
-        border: none;
-        margin: 2px;
-        /*padding: 1px;*/
-        /*--iron-icon-height: 18px;*/
-        /*--iron-icon-width: 18px;*/
+      iron-icon.unselected {
+        z-index: 4;
+        color: rgba(38,50,56 ,0.8);
+        --iron-icon-width: 30px;
+        --iron-icon-height: 30px;
       }
 
-      .up-indicator[maximum] {
-        display: none;
+      iron-icon.control {
+        color: rgba(38,50,56 ,1);
+        margin: 2px;
+        border: none;
       }
     </style>
     <!-- Local dom -->
-    <div adjusting="true" class="slider noselect hour" id="hour" tabindex="0" on-track="_dragging" on-tap="_toggleSelect">
-      <div class="digit">{{selectedHour}}</div>
-      <template is="dom-if" if="[[_toggleHour]]">
-        <template is="dom-if" if="[[_notMaxHour]]">
-          <span class="up-indicator">
-            <iron-icon class="adjusting" icon="icons:arrow-drop-up"></iron-icon>
-          </span>
+    <div class="time-select noselect">    
+      <div class="slider noselect hour" id="hour" tabindex="0" on-keydown="_checkKey" on-track="_dragging" on-tap="_toggleSelect">
+
+        <span class="digit noselect">{{selectedHour}}</span>
+        
+        <template is="dom-if" if="[[_toggleHour]]">
+          <template is="dom-if" if="[[_notMaxHour]]">
+            <span class="up-indicator">
+              <iron-icon class="adjusting unselected" icon="icons:arrow-drop-up"></iron-icon>
+            </span>
+          </template>
+
+          <template is="dom-if" if="[[_notMinHour]]">
+            <span class="down-indicator">
+              <iron-icon class="adjusting unselected" icon="icons:arrow-drop-down"></iron-icon>
+            </span>
+          </template>
         </template>
 
-        <template is="dom-if" if="[[_notMinHour]]">
-          <span class="down-indicator">
-            <iron-icon class="adjusting" icon="icons:arrow-drop-down"></iron-icon>
-          </span>
-        </template>
-      </template>
-    </div>
-    <div class="slider noselect minute" adjusting="false" id="minute" tabindex="0" on-track="_dragging" on-tap="_toggleSelect">
-      <div class="digit">{{selectedMinute}}</div>
-      <template is="dom-if" if="[[_toggleMinute]]">
-        <template is="dom-if" if="[[_notMaxMinute]]">
-          <span class="up-indicator">
-            <iron-icon class="adjusting" icon="icons:arrow-drop-up"></iron-icon>
-          </span>
+        <span class="up-indicator">
+          <iron-icon class="unselected" icon="icons:arrow-drop-up"></iron-icon>
+        </span>
+        <span class="down-indicator">
+          <iron-icon class="unselected" icon="icons:arrow-drop-down"></iron-icon>
+        </span>
+
+      </div>
+
+      <div class="slider noselect minute" id="minute" tabindex="0" on-tap="_toggleSelect" on-keydown="_checkKey">
+
+        <span class="digit noselect">{{selectedMinute}}</span>
+        <template is="dom-if" if="[[_toggleMinute]]">
+          <template is="dom-if" if="[[_notMaxMinute]]">
+            <span class="up-indicator">
+              <iron-icon class="adjusting" icon="icons:arrow-drop-up"></iron-icon>
+            </span>
+          </template>
+
+          <template is="dom-if" if="[[_notMinMinute]]">
+            <span class="down-indicator">
+              <iron-icon class="adjusting" icon="icons:arrow-drop-down"></iron-icon>
+            </span>
+          </template>
         </template>
 
-        <template is="dom-if" if="[[_notMinMinute]]">
-          <span class="down-indicator">
-            <iron-icon class="adjusting" icon="icons:arrow-drop-down"></iron-icon>
-          </span>
-        </template>
-      </template>
+      </div>
+
+      <div class="adjust">
+        <iron-icon id="plus" class="control" tabindex="0" on-tap="_plus" on-keypress="_checkKey" icon="icons:add-circle"></iron-icon>
+        <iron-icon id="minus" class="control" tabindex="0" on-tap="_minus" on-keypress="_checkKey" icon="icons:remove-circle"></iron-icon>
+      </div>
 
     </div>
-    <div class="adjust">
-      <iron-icon class="control" tabindex="0" on-tap="_plus" icon="icons:add-circle"></iron-icon>
-      <iron-icon class="control" tabindex="0" on-tap="_minus" icon="icons:remove-circle"></iron-icon>
-    </div>
-    <div class="date noselect">
-      Wed,<br>14 June 2017
-    </div>
 
+    <app-datepicker-dialog id="dialog" date="{{_selectedDate}}" format="dd mm yyyy" auto-update-date="true" modal></app-datepicker-dialog>
 
   </template>
 
@@ -205,6 +194,14 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
       is: 'ohwa-schedule',
 
       properties: {
+
+        _selectedDate: {
+          type: String,
+          value: function() {
+            var today = new Date().toDateString();
+            return today;
+          }
+        },
 
         selectedHour: {
           type: Number,
@@ -304,6 +301,10 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
 
       },
 
+      _date: function() {
+        this.$.dialog.open();
+      },
+
       _checkMaxMinHour: function(newValue) {
           var hours = this._availableHours;
           var length = hours.length;
@@ -332,14 +333,12 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
         if (!this._notMinHour && newValue == minutes[0]) {
           this._notMinMinute = false;
           this._notMaxMinute = true;
-          
           return;
         }
 
         if (!this._notMaxHour && newValue == minutes[length - 1]) {
           this._notMaxMinute = false;
           this._notMinMinute = true;
-          console.log('YE');
           return;
         }
 
@@ -396,24 +395,20 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
       _plus: function(e) {
         if (this._toggleHour) {
           this._nextHour();
-
         }
 
         if (this._toggleMinute) {
           this._nextMinute();
-
         }
       },
 
       _minus: function(e) {
         if (this._toggleHour) {
           this._previousHour();
-
         }
 
         if (this._toggleMinute) {
           this._previousMinute();
-
         }
       },
 
@@ -432,16 +427,31 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
       },
 
       _checkKey: function(e) {
-        console.log(e);
-        if (e.charCode == 13) {
+        if (e.code == 'ArrowUp' && e.target.id == 'hour' && this._toggleHour) {
+          this._plus();  
+        }
+
+        if (e.code == 'ArrowDown' && e.target.id == 'hour' && this._toggleHour) {
+          this._minus();  
+        }
+        
+        if (e.code == 'ArrowUp' && e.target.id == 'minute' && this._toggleMinute) {
+          this._plus();  
+        }
+
+        if (e.code == 'ArrowDown' && e.target.id == 'minute' && this._toggleMinute) {
+          this._minus();  
+        }
+
+        if (e.code == 'Enter' || e.code == 'Space') {
           this._toggleSelect(e);
         }
 
-        if (e.code == 'ArrowUp' ) {
+        if ((e.code == 'Enter' || e.code == 'Space') && e.target.id == 'plus') {
           this._plus();
         }
 
-        if (e.code == 'ArrowDown' ) {
+        if ((e.code == 'Enter' || e.code == 'Space') && e.target.id == 'minus') {
           this._minus();
         }
       },
@@ -512,13 +522,11 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
 
               var possibleStart = main._slotToTime(a);
               _slots.push(possibleStart);
-              console.log(length);
 
             }
           } 
         }
 
-        console.log(slotList);
         return this._processSelectableTimes(_slots);
       },
 
@@ -559,7 +567,6 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
         var minutes = newValue[this.selectedHour];
         // Set minute
         this.selectedMinute = minutes[0];
-        
       },
 
       _getAvailableMinutes: function() {
@@ -591,9 +598,8 @@ You supply: eventDuration, businessHours, bookedEvents to determine a possible s
       },
 
       ready: function() {
-        console.log(this._selectableTimes);
-      }
 
+      }
 
     });
   </script>
